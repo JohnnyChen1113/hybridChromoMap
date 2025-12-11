@@ -1,0 +1,16 @@
+#chrom	copy	start	end	origin
+chrI	1	0	300000	species_A
+chrI	1	300000	550000	species_B
+chrI	1	550000	800000	species_C
+chrI	2	0	400000	species_B
+chrI	2	400000	780000	species_A
+chrII	1	0	200000	species_A
+chrII	1	200000	400000	species_D
+chrII	1	400000	600000	species_C
+chrII	2	0	300000	species_C
+chrII	2	300000	620000	species_B
+chrIII	1	0	250000	species_D
+chrIII	1	250000	500000	species_A
+chrIII	2	0	200000	species_B
+chrIII	2	200000	350000	species_D
+chrIII	2	350000	510000	species_C

@@ -101,16 +101,22 @@ chrI	2	200000	480000	S_cerevisiae
 
 ```tsv
 #origin	color	label
-S_cerevisiae	#E64B35	S. cerevisiae
-S_paradoxus	#4DBBD5	S. paradoxus
-unknown	#808080	Unknown
+species_A	red	Species A
+species_B	#4DBBD5	Species B
+species_C	(0, 160, 135)	Species C
+species_D	darkorange	Species D
 ```
 
 | Field | Type | Description |
 |-------|------|-------------|
 | origin | string | Origin identifier (matches segments file) |
-| color | string | Hex color (e.g., #E64B35) |
+| color | string | Color specification (see below) |
 | label | string | Display label for legend |
+
+**Supported color formats:**
+- **Hex**: `#E64B35`, `#RGB` (short form)
+- **RGB tuple**: `(230, 75, 53)` or `230,75,53`
+- **Color names**: `red`, `blue`, `green`, `darkorange`, etc. (matplotlib named colors)
 
 **Note:** If no colors file is provided, colors are auto-generated based on unique origins in the segments file.
 
@@ -149,6 +155,17 @@ python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -o output.png -
 
 ![Example 3 Output](examples/example3_sbay/output.png)
 
+### Example 4: Custom Colors
+
+Demonstrates multiple color formats: color names (`red`, `darkorange`), hex (`#4DBBD5`), and RGB tuples (`(0, 160, 135)`).
+
+```bash
+cd examples/example4_custom_colors
+python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -o output.png
+```
+
+![Example 4 Output](examples/example4_custom_colors/output.png)
+
 ## Output Formats
 
 Output format is determined by file extension:
@@ -163,3 +180,6 @@ MIT License
 ## Acknowledgments
 
 Inspired by chromosome painting visualizations in hybrid species genomics research.
+
+- [GeMo](https://github.com/Haoran-Jie/GeMo_Genomic_Mosaic_Visualization) - Genomic Mosaic Visualization tool
+- [chromoMap](https://cran.r-project.org/web/packages/chromoMap/index.html) - Interactive visualization of chromosomes in R

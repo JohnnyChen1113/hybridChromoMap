@@ -210,10 +210,71 @@ def parse_segments(filepath: Path, karyotype: Karyotype) -> None:
             copy.sort_segments()
 
 
+def parse_color(color_str: str) -> str:
+    """
+    Parse color string and return hex format (#RRGGBB).
+
+    Supported formats:
+    - Hex: #E64B35, #e64b35
+    - RGB tuple: (230, 75, 53), (230,75,53), 230,75,53
+    - Color names: red, blue, green, etc. (matplotlib named colors)
+    """
+    color_str = color_str.strip()
+
+    # Format 1: Hex color (#RRGGBB or #RGB)
+    if color_str.startswith('#'):
+        hex_color = color_str[1:]
+        if len(hex_color) == 6:
+            # Validate hex characters
+            try:
+                int(hex_color, 16)
+                return color_str.upper()
+            except ValueError:
+                pass
+        elif len(hex_color) == 3:
+            # Short hex format #RGB -> #RRGGBB
+            try:
+                int(hex_color, 16)
+                return f"#{hex_color[0]*2}{hex_color[1]*2}{hex_color[2]*2}".upper()
+            except ValueError:
+                pass
+
+    # Format 2: RGB tuple - (R, G, B) or R,G,B
+    # Remove parentheses and split
+    rgb_str = color_str.strip('()').replace(' ', '')
+    if ',' in rgb_str:
+        parts = rgb_str.split(',')
+        if len(parts) == 3:
+            try:
+                r, g, b = [int(p) for p in parts]
+                if all(0 <= v <= 255 for v in (r, g, b)):
+                    return f"#{r:02X}{g:02X}{b:02X}"
+            except ValueError:
+                pass
+
+    # Format 3: Named color (matplotlib)
+    try:
+        rgb = mcolors.to_rgb(color_str)
+        r, g, b = [int(v * 255) for v in rgb]
+        return f"#{r:02X}{g:02X}{b:02X}"
+    except ValueError:
+        pass
+
+    raise ValueError(
+        f"Invalid color format: '{color_str}'. "
+        f"Supported formats: #RRGGBB, (R,G,B), or color name (red, blue, etc.)"
+    )
+
+
 def parse_origins(filepath: Path) -> Dict[str, Origin]:
     """
     Parse origins TSV file.
     Format: #origin  color  label
+
+    Color can be specified as:
+    - Hex: #E64B35
+    - RGB: (230, 75, 53) or 230,75,53
+    - Name: red, blue, green, etc.
     """
     origins = {}
 
@@ -231,15 +292,13 @@ def parse_origins(filepath: Path) -> Dict[str, Origin]:
                 )
 
             name = parts[0]
-            color = parts[1]
+            color_str = parts[1]
             label = parts[2]
 
-            # Validate hex color
-            if not color.startswith('#') or len(color) != 7:
-                raise ValueError(
-                    f"Origins file line {line_num}: invalid hex color '{color}'. "
-                    f"Expected format: #RRGGBB"
-                )
+            try:
+                color = parse_color(color_str)
+            except ValueError as e:
+                raise ValueError(f"Origins file line {line_num}: {e}")
 
             origins[name] = Origin(name=name, color=color, label=label)
 
