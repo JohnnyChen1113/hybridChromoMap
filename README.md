@@ -2,7 +2,9 @@
 
 A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
-**Version: 0.1.2**
+**Version: 0.1.3**
+
+**[Try the Web Version](https://johnnychen1113.github.io/hybridChromoMap/)** - No installation required!
 
 ## Features
 
@@ -11,8 +13,18 @@ A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 - Variable ploidy support (haploid, diploid, aneuploid)
 - Publication-quality output (SVG/PNG/PDF)
 - Auto-generated colors when no color file is provided
+- **Web version available** - use directly in browser, no installation needed
 
-## Installation
+## Web Version
+
+Try the online version at **https://johnnychen1113.github.io/hybridChromoMap/**
+
+- No installation required
+- Paste your data directly into the browser
+- Export as SVG or PNG
+- Works on any device with a modern browser
+
+## Installation (Python CLI)
 
 ### Dependencies
 
@@ -176,6 +188,10 @@ Output format is determined by file extension:
 - `.pdf` - Vector graphics (publication-ready)
 
 ## Changelog
+
+### v0.1.3
+- Add web version (GitHub Pages) - no installation required
+- JavaScript implementation with SVG/PNG export
 
 ### v0.1.2
 - Add `--chrom-height` option to control chromosome bar height

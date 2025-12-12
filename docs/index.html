@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HybridChromoMap - Web Version</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        .main-layout {
+            display: flex;
+            gap: 20px;
+        }
+        .input-panel {
+            width: 350px;
+            flex-shrink: 0;
+        }
+        .output-panel {
+            flex: 1;
+            min-width: 0;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            color: #555;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 11px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .option-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .option-group label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .option-group input, .option-group select {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .option-group input:focus, .option-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #bdc3c7;
+        }
+        .output-area {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: auto;
+        }
+        #chromoMap {
+            width: 100%;
+        }
+        .error {
+            color: #e74c3c;
+            background: #fdeaea;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+        }
+        .example-link {
+            font-size: 12px;
+            color: #3498db;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .example-link:hover {
+            color: #2980b9;
+        }
+        .export-btns {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .export-btn {
+            padding: 8px 16px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .export-btn:hover {
+            background: #219a52;
+        }
+        .export-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #888;
+            font-size: 13px;
+        }
+        footer a {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HybridChromoMap</h1>
+        <p class="subtitle">Chromosome ancestry painting visualization for hybrid species</p>
+
+        <div class="main-layout">
+            <div class="input-panel">
+                <div class="card">
+                    <h3>Karyotype <span class="example-link" onclick="loadExample('karyotype')">(load example)</span></h3>
+                    <textarea id="karyotypeInput" placeholder="#chrom&#9;length&#9;copy
+chrI&#9;500000&#9;1
+chrI&#9;480000&#9;2
+..."></textarea>
+                </div>
+
+                <div class="card">
+                    <h3>Segments <span class="example-link" onclick="loadExample('segments')">(load example)</span></h3>
+                    <textarea id="segmentsInput" placeholder="#chrom&#9;copy&#9;start&#9;end&#9;origin
+chrI&#9;1&#9;0&#9;250000&#9;species_A
+..."></textarea>
+                </div>
+
+                <div class="card">
+                    <h3>Colors (optional) <span class="example-link" onclick="loadExample('colors')">(load example)</span></h3>
+                    <textarea id="colorsInput" placeholder="#origin&#9;color&#9;label
+species_A&#9;#E64B35&#9;Species A
+..." style="height: 100px;"></textarea>
+                </div>
+
+                <div class="card">
+                    <h3>Options</h3>
+                    <div class="options-grid">
+                        <div class="option-group">
+                            <label>Sort by</label>
+                            <select id="sortOption">
+                                <option value="none">None</option>
+                                <option value="name">Name</option>
+                                <option value="length">Length</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label>Legend</label>
+                            <select id="legendOption">
+                                <option value="right">Right</option>
+                                <option value="bottom">Bottom</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div class="option-group">
+                            <label>Chrom Height</label>
+                            <input type="number" id="chromHeight" value="24" min="10" max="50">
+                        </div>
+                        <div class="option-group">
+                            <label>Font Size</label>
+                            <input type="number" id="fontSize" value="12" min="8" max="24">
+                        </div>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="render()">Draw</button>
+                        <button class="btn btn-secondary" onclick="loadAllExamples()">Load Example</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-panel">
+                <div class="export-btns">
+                    <button class="export-btn" id="exportSvg" onclick="exportSVG()" disabled>Export SVG</button>
+                    <button class="export-btn" id="exportPng" onclick="exportPNG()" disabled>Export PNG</button>
+                </div>
+                <div class="output-area">
+                    <div id="errorMsg"></div>
+                    <svg id="chromoMap"></svg>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <a href="https://github.com/JohnnyChen1113/hybridChromoMap" target="_blank">GitHub</a> ·
+            Python CLI version also available ·
+            MIT License
+        </footer>
+    </div>
+
+    <script>
+        // NPG color palette for auto-generated colors
+        const NPG_COLORS = [
+            '#E64B35', '#4DBBD5', '#00A087', '#3C5488',
+            '#F39B7F', '#8491B4', '#91D1C2', '#DC0000',
+            '#7E6148', '#B09C85'
+        ];
+
+        // Example data
+        const EXAMPLES = {
+            karyotype: `#chrom\tlength\tcopy
+chrI\t1230218\t1
+chrI\t1050000\t2
+chrII\t813184\t1
+chrII\t800000\t2
+chrIII\t1020891\t1
+chrIV\t514567\t1
+chrIV\t500000\t2`,
+            segments: `#chrom\tcopy\tstart\tend\torigin
+chrI\t1\t0\t550000\tS. cerevisiae
+chrI\t1\t550000\t850000\tS. paradoxus
+chrI\t1\t850000\t1230218\tS. cerevisiae
+chrI\t2\t0\t480000\tS. kudriavzevii
+chrI\t2\t480000\t750000\tUnknown
+chrI\t2\t750000\t1050000\tS. cerevisiae
+chrII\t1\t0\t350000\tS. cerevisiae
+chrII\t1\t350000\t600000\tS. uvarum
+chrII\t1\t600000\t813184\tS. kudriavzevii
+chrII\t2\t0\t280000\tS. cerevisiae
+chrII\t2\t280000\t550000\tS. kudriavzevii
+chrII\t2\t550000\t800000\tS. kudriavzevii
+chrIII\t1\t0\t450000\tS. cerevisiae
+chrIII\t1\t450000\t780000\tS. paradoxus
+chrIII\t1\t780000\t1020891\tS. uvarum
+chrIV\t1\t0\t180000\tS. cerevisiae
+chrIV\t1\t180000\t514567\tS. paradoxus
+chrIV\t2\t0\t200000\tS. uvarum
+chrIV\t2\t200000\t500000\tS. cerevisiae`,
+            colors: `#origin\tcolor\tlabel
+S. cerevisiae\t#E64B35\tS. cerevisiae
+S. kudriavzevii\t#00A087\tS. kudriavzevii
+S. paradoxus\t#3C5488\tS. paradoxus
+S. uvarum\t#F39B7F\tS. uvarum
+Unknown\t#999999\tUnknown`
+        };
+
+        function loadExample(type) {
+            document.getElementById(type + 'Input').value = EXAMPLES[type];
+        }
+
+        function loadAllExamples() {
+            loadExample('karyotype');
+            loadExample('segments');
+            loadExample('colors');
+            render();
+        }
+
+        function parseTSV(text) {
+            const lines = text.trim().split('\n').filter(l => l && !l.startsWith('#'));
+            return lines.map(line => line.split('\t'));
+        }
+
+        function parseKaryotype(text) {
+            const rows = parseTSV(text);
+            const chromosomes = {};
+            for (const row of rows) {
+                if (row.length < 3) continue;
+                const [chrom, length, copy] = row;
+                if (!chromosomes[chrom]) {
+                    chromosomes[chrom] = { name: chrom, copies: [] };
+                }
+                chromosomes[chrom].copies.push({
+                    copy: parseInt(copy),
+                    length: parseInt(length),
+                    segments: []
+                });
+            }
+            // Sort copies by copy number
+            for (const chrom of Object.values(chromosomes)) {
+                chrom.copies.sort((a, b) => a.copy - b.copy);
+            }
+            return chromosomes;
+        }
+
+        function parseSegments(text, chromosomes) {
+            const rows = parseTSV(text);
+            const origins = new Set();
+            for (const row of rows) {
+                if (row.length < 5) continue;
+                const [chrom, copy, start, end, origin] = row;
+                origins.add(origin);
+                if (chromosomes[chrom]) {
+                    const copyData = chromosomes[chrom].copies.find(c => c.copy === parseInt(copy));
+                    if (copyData) {
+                        copyData.segments.push({
+                            start: parseInt(start),
+                            end: parseInt(end),
+                            origin: origin
+                        });
+                    }
+                }
+            }
+            // Sort segments by start position
+            for (const chrom of Object.values(chromosomes)) {
+                for (const copy of chrom.copies) {
+                    copy.segments.sort((a, b) => a.start - b.start);
+                }
+            }
+            return origins;
+        }
+
+        function parseColors(text, origins) {
+            const colorMap = {};
+            if (text.trim()) {
+                const rows = parseTSV(text);
+                for (const row of rows) {
+                    if (row.length >= 2) {
+                        const [origin, color, label] = row;
+                        colorMap[origin] = {
+                            color: parseColor(color),
+                            label: label || origin
+                        };
+                    }
+                }
+            }
+            // Auto-generate colors for missing origins
+            let colorIdx = 0;
+            for (const origin of origins) {
+                if (!colorMap[origin]) {
+                    colorMap[origin] = {
+                        color: NPG_COLORS[colorIdx % NPG_COLORS.length],
+                        label: origin
+                    };
+                    colorIdx++;
+                }
+            }
+            return colorMap;
+        }
+
+        function parseColor(colorStr) {
+            colorStr = colorStr.trim();
+            // Already a valid CSS color
+            if (colorStr.startsWith('#') || colorStr.match(/^[a-z]+$/i)) {
+                return colorStr;
+            }
+            // RGB tuple like (230, 75, 53) or 230,75,53
+            const rgbMatch = colorStr.match(/\(?(\d+)[,\s]+(\d+)[,\s]+(\d+)\)?/);
+            if (rgbMatch) {
+                const r = parseInt(rgbMatch[1]);
+                const g = parseInt(rgbMatch[2]);
+                const b = parseInt(rgbMatch[3]);
+                return `rgb(${r},${g},${b})`;
+            }
+            return colorStr;
+        }
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMsg');
+            if (msg) {
+                errorDiv.innerHTML = `<div class="error">${msg}</div>`;
+            } else {
+                errorDiv.innerHTML = '';
+            }
+        }
+
+        function render() {
+            showError('');
+
+            const karyotypeText = document.getElementById('karyotypeInput').value;
+            const segmentsText = document.getElementById('segmentsInput').value;
+            const colorsText = document.getElementById('colorsInput').value;
+
+            if (!karyotypeText.trim() || !segmentsText.trim()) {
+                showError('Please provide karyotype and segments data');
+                return;
+            }
+
+            try {
+                const chromosomes = parseKaryotype(karyotypeText);
+                const origins = parseSegments(segmentsText, chromosomes);
+                const colorMap = parseColors(colorsText, origins);
+
+                const sortOption = document.getElementById('sortOption').value;
+                const legendOption = document.getElementById('legendOption').value;
+                const chromHeight = parseInt(document.getElementById('chromHeight').value) || 24;
+                const fontSize = parseInt(document.getElementById('fontSize').value) || 12;
+
+                drawChromoMap(chromosomes, colorMap, {
+                    sort: sortOption,
+                    legend: legendOption,
+                    chromHeight: chromHeight,
+                    fontSize: fontSize
+                });
+
+                document.getElementById('exportSvg').disabled = false;
+                document.getElementById('exportPng').disabled = false;
+            } catch (e) {
+                showError('Error parsing data: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        function drawChromoMap(chromosomes, colorMap, options) {
+            const svg = document.getElementById('chromoMap');
+            svg.innerHTML = '';
+
+            // Convert to array for sorting
+            let chromList = Object.values(chromosomes);
+
+            // Sort chromosomes
+            if (options.sort === 'name') {
+                chromList.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+            } else if (options.sort === 'length') {
+                chromList.sort((a, b) => {
+                    const maxA = Math.max(...a.copies.map(c => c.length));
+                    const maxB = Math.max(...b.copies.map(c => c.length));
+                    return maxB - maxA;
+                });
+            }
+
+            // Calculate dimensions
+            const chromHeight = options.chromHeight;
+            const chromSpacing = chromHeight * 0.5;
+            const groupSpacing = chromHeight * 1.2;
+            const labelWidth = 80;
+            const marginTop = 30;
+            const marginBottom = 60;
+            const marginRight = options.legend === 'right' ? 150 : 30;
+            const marginLeft = 10;
+
+            // Find max length for scaling
+            let maxLength = 0;
+            for (const chrom of chromList) {
+                for (const copy of chrom.copies) {
+                    maxLength = Math.max(maxLength, copy.length);
+                }
+            }
+
+            // Calculate total rows and height
+            let totalRows = 0;
+            let groups = 0;
+            for (const chrom of chromList) {
+                totalRows += chrom.copies.length;
+                groups++;
+            }
+
+            const svgWidth = 900;
+            const drawWidth = svgWidth - labelWidth - marginLeft - marginRight;
+            const svgHeight = marginTop + totalRows * (chromHeight + chromSpacing) + (groups - 1) * groupSpacing + marginBottom;
+
+            svg.setAttribute('width', svgWidth);
+            svg.setAttribute('height', svgHeight);
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+            // Scale function
+            const scale = (bp) => (bp / maxLength) * drawWidth;
+
+            // Draw chromosomes
+            let y = marginTop;
+            const radius = chromHeight / 2;
+
+            for (const chrom of chromList) {
+                for (let i = 0; i < chrom.copies.length; i++) {
+                    const copy = chrom.copies[i];
+                    const copyLabel = `${chrom.name}-${copy.copy}`;
+                    const x = labelWidth + marginLeft;
+                    const chromWidth = scale(copy.length);
+
+                    // Draw label
+                    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    label.setAttribute('x', labelWidth - 10);
+                    label.setAttribute('y', y + chromHeight / 2 + 4);
+                    label.setAttribute('text-anchor', 'end');
+                    label.setAttribute('font-size', options.fontSize);
+                    label.setAttribute('font-family', 'sans-serif');
+                    label.textContent = copyLabel;
+                    svg.appendChild(label);
+
+                    // Draw segments
+                    const segments = copy.segments;
+                    for (let j = 0; j < segments.length; j++) {
+                        const seg = segments[j];
+                        const segX = x + scale(seg.start);
+                        const segWidth = scale(seg.end - seg.start);
+                        const color = colorMap[seg.origin]?.color || '#999';
+
+                        const isFirst = j === 0;
+                        const isLast = j === segments.length - 1;
+
+                        if (isFirst && isLast) {
+                            // Single segment - rounded on both ends (capsule)
+                            drawCapsule(svg, segX, y, segWidth, chromHeight, radius, color);
+                        } else if (isFirst) {
+                            // First segment - rounded left, flat right
+                            drawLeftRounded(svg, segX, y, segWidth, chromHeight, radius, color);
+                        } else if (isLast) {
+                            // Last segment - flat left, rounded right
+                            drawRightRounded(svg, segX, y, segWidth, chromHeight, radius, color);
+                        } else {
+                            // Middle segment - flat on both sides
+                            drawRect(svg, segX, y, segWidth, chromHeight, color);
+                        }
+                    }
+
+                    y += chromHeight + chromSpacing;
+                }
+                y += groupSpacing - chromSpacing; // Extra spacing between chromosome groups
+            }
+
+            // Draw scale bar
+            const scaleY = svgHeight - 30;
+            drawScaleBar(svg, labelWidth + marginLeft, scaleY, drawWidth, maxLength, options.fontSize);
+
+            // Draw legend
+            if (options.legend !== 'none') {
+                drawLegend(svg, colorMap, options, svgWidth, svgHeight, marginRight, labelWidth, marginLeft);
+            }
+        }
+
+        function drawCapsule(svg, x, y, width, height, radius, color) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const r = Math.min(radius, width / 2);
+            const d = `M ${x + r} ${y}
+                       H ${x + width - r}
+                       A ${r} ${r} 0 0 1 ${x + width - r} ${y + height}
+                       H ${x + r}
+                       A ${r} ${r} 0 0 1 ${x + r} ${y}
+                       Z`;
+            path.setAttribute('d', d);
+            path.setAttribute('fill', color);
+            svg.appendChild(path);
+        }
+
+        function drawLeftRounded(svg, x, y, width, height, radius, color) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const r = Math.min(radius, width);
+            const d = `M ${x + r} ${y}
+                       H ${x + width}
+                       V ${y + height}
+                       H ${x + r}
+                       A ${r} ${r} 0 0 1 ${x + r} ${y}
+                       Z`;
+            path.setAttribute('d', d);
+            path.setAttribute('fill', color);
+            svg.appendChild(path);
+        }
+
+        function drawRightRounded(svg, x, y, width, height, radius, color) {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const r = Math.min(radius, width);
+            const d = `M ${x} ${y}
+                       H ${x + width - r}
+                       A ${r} ${r} 0 0 1 ${x + width - r} ${y + height}
+                       H ${x}
+                       V ${y}
+                       Z`;
+            path.setAttribute('d', d);
+            path.setAttribute('fill', color);
+            svg.appendChild(path);
+        }
+
+        function drawRect(svg, x, y, width, height, color) {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+            rect.setAttribute('width', width);
+            rect.setAttribute('height', height);
+            rect.setAttribute('fill', color);
+            svg.appendChild(rect);
+        }
+
+        function drawScaleBar(svg, x, y, width, maxLength, fontSize) {
+            // Determine appropriate unit and interval
+            let unit, unitLabel, interval;
+            if (maxLength >= 1000000) {
+                unit = 1000000;
+                unitLabel = 'Mb';
+            } else {
+                unit = 1000;
+                unitLabel = 'kb';
+            }
+
+            // Calculate nice interval
+            const maxInUnits = maxLength / unit;
+            const targetTicks = 6;
+            const rawInterval = maxInUnits / targetTicks;
+            const magnitude = Math.pow(10, Math.floor(Math.log10(rawInterval)));
+            const normalized = rawInterval / magnitude;
+
+            let niceInterval;
+            if (normalized <= 1) niceInterval = 1;
+            else if (normalized <= 2) niceInterval = 2;
+            else if (normalized <= 5) niceInterval = 5;
+            else niceInterval = 10;
+
+            interval = niceInterval * magnitude * unit;
+
+            // Draw axis line
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x);
+            line.setAttribute('y1', y);
+            line.setAttribute('x2', x + width);
+            line.setAttribute('y2', y);
+            line.setAttribute('stroke', '#333');
+            line.setAttribute('stroke-width', 1);
+            svg.appendChild(line);
+
+            // Draw ticks and labels
+            const scale = (bp) => (bp / maxLength) * width;
+            for (let bp = 0; bp <= maxLength; bp += interval) {
+                const tickX = x + scale(bp);
+
+                // Tick
+                const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                tick.setAttribute('x1', tickX);
+                tick.setAttribute('y1', y);
+                tick.setAttribute('x2', tickX);
+                tick.setAttribute('y2', y + 5);
+                tick.setAttribute('stroke', '#333');
+                tick.setAttribute('stroke-width', 1);
+                svg.appendChild(tick);
+
+                // Label
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('x', tickX);
+                label.setAttribute('y', y + 18);
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('font-size', fontSize - 2);
+                label.setAttribute('font-family', 'sans-serif');
+                label.textContent = (bp / unit).toFixed(unit === 1000000 && bp > 0 ? 1 : 0);
+                svg.appendChild(label);
+            }
+
+            // Unit label
+            const unitText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            unitText.setAttribute('x', x + width + 10);
+            unitText.setAttribute('y', y + 5);
+            unitText.setAttribute('font-size', fontSize - 1);
+            unitText.setAttribute('font-family', 'sans-serif');
+            unitText.textContent = unitLabel;
+            svg.appendChild(unitText);
+        }
+
+        function drawLegend(svg, colorMap, options, svgWidth, svgHeight, marginRight, labelWidth, marginLeft) {
+            const fontSize = options.fontSize;
+            const boxSize = fontSize + 2;
+            const lineHeight = boxSize + 6;
+
+            const origins = Object.keys(colorMap);
+
+            let legendX, legendY;
+            if (options.legend === 'right') {
+                legendX = svgWidth - marginRight + 20;
+                legendY = 40;
+            } else {
+                legendX = labelWidth + marginLeft + 20;
+                legendY = svgHeight - 20;
+            }
+
+            // Legend title
+            const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            title.setAttribute('x', legendX);
+            title.setAttribute('y', legendY);
+            title.setAttribute('font-size', fontSize);
+            title.setAttribute('font-weight', 'bold');
+            title.setAttribute('font-family', 'sans-serif');
+            title.textContent = 'Origin';
+            svg.appendChild(title);
+
+            // Legend items
+            let itemY = legendY + lineHeight;
+            for (const origin of origins) {
+                const { color, label } = colorMap[origin];
+
+                // Color box
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', legendX);
+                rect.setAttribute('y', itemY - boxSize + 3);
+                rect.setAttribute('width', boxSize);
+                rect.setAttribute('height', boxSize);
+                rect.setAttribute('fill', color);
+                rect.setAttribute('rx', 2);
+                svg.appendChild(rect);
+
+                // Label
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', legendX + boxSize + 6);
+                text.setAttribute('y', itemY);
+                text.setAttribute('font-size', fontSize);
+                text.setAttribute('font-family', 'sans-serif');
+                text.textContent = label;
+                svg.appendChild(text);
+
+                itemY += lineHeight;
+            }
+
+            // Draw border
+            const borderPadding = 8;
+            const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            border.setAttribute('x', legendX - borderPadding);
+            border.setAttribute('y', legendY - fontSize - borderPadding + 5);
+            border.setAttribute('width', 120);
+            border.setAttribute('height', (origins.length + 1) * lineHeight + borderPadding);
+            border.setAttribute('fill', 'none');
+            border.setAttribute('stroke', '#ddd');
+            border.setAttribute('rx', 4);
+            svg.appendChild(border);
+
+            // Move border to back
+            svg.insertBefore(border, svg.firstChild);
+        }
+
+        function exportSVG() {
+            const svg = document.getElementById('chromoMap');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'chromomap.svg';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportPNG() {
+            const svg = document.getElementById('chromoMap');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const scale = 2; // High DPI
+                canvas.width = svg.width.baseVal.value * scale;
+                canvas.height = svg.height.baseVal.value * scale;
+
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+
+                const pngUrl = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = pngUrl;
+                a.download = 'chromomap.png';
+                a.click();
+
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+        }
+    </script>
+</body>
+</html>
