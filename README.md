@@ -13,7 +13,7 @@ A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 If you use HybridChromoMap in your research, please cite:
 
 ```
-JohnnyChen1113. (2025). HybridChromoMap: A tool for chromosome ancestry painting visualization.
+Junhao Chen. (2025). HybridChromoMap: A tool for chromosome ancestry painting visualization.
 Zenodo. https://doi.org/10.5281/zenodo.17905682
 ```
 
