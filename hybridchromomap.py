@@ -503,8 +503,8 @@ class ChromoMapRenderer:
         origins: Dict[str, Origin],
         annotations: Optional[List[Annotation]] = None,
         fig_width: float = 12.0,
-        chrom_height: float = 0.4,
-        font_size: float = 10.0,
+        chrom_height: float = 0.24,
+        font_size: float = 16.0,
         same_chrom_spacing: float = 0.15,
         diff_chrom_spacing: float = 0.5,
         left_margin: float = 1.5,
@@ -513,6 +513,7 @@ class ChromoMapRenderer:
         bottom_margin: float = 1.0,
         marker_size: float = 0.06,
         label_angle: float = 45.0,
+        show_labels: bool = True,
     ):
         self.karyotype = karyotype
         self.origins = origins
@@ -528,6 +529,7 @@ class ChromoMapRenderer:
         self.bottom_margin = bottom_margin
         self.marker_size = marker_size
         self.label_angle = label_angle
+        self.show_labels = show_labels
 
         # Calculate scale: bp to inches
         self.max_bp = karyotype.max_length
@@ -904,7 +906,7 @@ class ChromoMapRenderer:
         angle: float
     ):
         """Draw a tilted label next to a marker."""
-        if not label:
+        if not label or not self.show_labels:
             return
 
         ax.text(
@@ -1203,13 +1205,13 @@ class ChromoMapRenderer:
 @click.option(
     '--chrom-height',
     type=float,
-    default=0.4,
+    default=0.24,
     help='Chromosome bar height in inches'
 )
 @click.option(
     '--font-size',
     type=float,
-    default=10.0,
+    default=16.0,
     help='Label font size'
 )
 @click.option(
@@ -1237,6 +1239,12 @@ class ChromoMapRenderer:
     default=45.0,
     help='Annotation label rotation angle in degrees'
 )
+@click.option(
+    '--no-labels',
+    is_flag=True,
+    default=False,
+    help='Hide annotation labels (show only markers)'
+)
 def main(
     karyotype: Path,
     segments: Path,
@@ -1251,7 +1259,8 @@ def main(
     dpi: int,
     annotations: Optional[Path],
     marker_size: float,
-    label_angle: float
+    label_angle: float,
+    no_labels: bool
 ):
     """
     HybridChromoMap - Chromosome ancestry painting visualization
@@ -1304,7 +1313,8 @@ def main(
             chrom_height=chrom_height,
             font_size=font_size,
             marker_size=marker_size,
-            label_angle=label_angle
+            label_angle=label_angle,
+            show_labels=not no_labels
         )
         renderer.render(
             output_path=out,

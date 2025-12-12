@@ -2,7 +2,7 @@
 
 A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
-**Version: 0.1.5**
+**Version: 0.2.1**
 
 **[Try the Web Version](https://johnnychen1113.github.io/hybridChromoMap/)** - No installation required!
 
@@ -70,11 +70,12 @@ python hybridchromomap.py \
 | `--legend` | | Legend position (right/bottom/none) | right |
 | `--no-scale` | | Hide scale bar | False |
 | `--width` | | Figure width in inches | 12 |
-| `--chrom-height` | | Chromosome bar height in inches | 0.4 |
-| `--font-size` | | Label font size | 10 |
+| `--chrom-height` | | Chromosome bar height in inches | 0.24 |
+| `--font-size` | | Label font size | 16 |
 | `--dpi` | | PNG output resolution | 300 |
 | `--marker-size` | | Annotation marker size in inches | 0.06 |
 | `--label-angle` | | Annotation label rotation angle | 45 |
+| `--no-labels` | | Hide annotation labels (show only markers) | False |
 
 ## Input File Formats
 
@@ -227,6 +228,11 @@ Output format is determined by file extension:
 - `.pdf` - Vector graphics (publication-ready)
 
 ## Changelog
+
+### v0.2.1
+- Add `--no-labels` option to hide annotation labels
+- Change default chromosome height to 0.24 inches (was 0.4)
+- Change default font size to 16 (was 10)
 
 ### v0.1.5
 - Add annotation markers feature (`-a` option)
