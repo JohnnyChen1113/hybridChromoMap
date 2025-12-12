@@ -8,14 +8,14 @@ A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
 ## Citation
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17905682.svg)](https://doi.org/10.5281/zenodo.17905682)
+
 If you use HybridChromoMap in your research, please cite:
 
 ```
-HybridChromoMap: A tool for chromosome ancestry painting visualization
-https://github.com/JohnnyChen1113/hybridChromoMap
+JohnnyChen1113. (2025). HybridChromoMap: A tool for chromosome ancestry painting visualization.
+Zenodo. https://doi.org/10.5281/zenodo.17905682
 ```
-
-<!-- TODO: Add Zenodo DOI badge after enabling Zenodo integration -->
 
 ## Features
 
