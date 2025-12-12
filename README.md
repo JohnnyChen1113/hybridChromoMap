@@ -2,7 +2,7 @@
 
 A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
-**Version: 0.1.3**
+**Version: 0.1.4**
 
 **[Try the Web Version](https://johnnychen1113.github.io/hybridChromoMap/)** - No installation required!
 
@@ -188,6 +188,13 @@ Output format is determined by file extension:
 - `.pdf` - Vector graphics (publication-ready)
 
 ## Changelog
+
+### v0.1.4
+- Fix bottom legend position (now displays below x-axis like CLI)
+- Add italic option for species names in legend
+- Add PDF export and custom filename support
+- Add help documentation for data formats
+- Add ZLin Lab website link
 
 ### v0.1.3
 - Add web version (GitHub Pages) - no installation required
