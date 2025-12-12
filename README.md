@@ -2,7 +2,7 @@
 
 A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
-**Version: 0.1.4**
+**Version: 0.1.5**
 
 **[Try the Web Version](https://johnnychen1113.github.io/hybridChromoMap/)** - No installation required!
 
@@ -64,6 +64,7 @@ python hybridchromomap.py \
 | `--karyotype` | `-k` | Karyotype definition file (TSV) | Required |
 | `--segments` | `-s` | Segment origins file (TSV) | Required |
 | `--colors` | `-c` | Origin colors file (TSV) | Auto-generate |
+| `--annotations` | `-a` | Annotations file (TSV) | None |
 | `--out` | `-o` | Output file path | out.png |
 | `--sort` | | Sort order (none/name/length) | none |
 | `--legend` | | Legend position (right/bottom/none) | right |
@@ -72,6 +73,8 @@ python hybridchromomap.py \
 | `--chrom-height` | | Chromosome bar height in inches | 0.4 |
 | `--font-size` | | Label font size | 10 |
 | `--dpi` | | PNG output resolution | 300 |
+| `--marker-size` | | Annotation marker size in inches | 0.06 |
+| `--label-angle` | | Annotation label rotation angle | 45 |
 
 ## Input File Formats
 
@@ -134,6 +137,31 @@ species_D	darkorange	Species D
 
 **Note:** If no colors file is provided, colors are auto-generated based on unique origins in the segments file.
 
+### Annotations File (`annotations.tsv`) - Optional
+
+```tsv
+#chrom	copy	start	end	type	color	shape	label
+chrI	1	125000	125000	TF	#E64B35	circle	MYC
+chrI	1	550000	580000	hotspot	#F39B7F	rect	HOT1
+chrII	1	200000	200000	centromere	gold	diamond	CEN
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| chrom | string | Yes | Chromosome name |
+| copy | int | Yes | Copy number |
+| start | int | Yes | Start position (bp) |
+| end | int | Yes | End position (bp), same as start for point markers |
+| type | string | Yes | Annotation type (for auto-coloring) |
+| color | string | No | Color (auto-assigned by type if omitted) |
+| shape | string | No | Shape: `circle`, `triangle`, `diamond`, `rect`, `line` (default: circle) |
+| label | string | No | Text label to display next to marker |
+
+**Features:**
+- **Jitter**: Overlapping markers are automatically staggered vertically
+- **Auto-spacing**: Chromosomes with annotations get extra vertical space
+- **Auto-coloring**: Colors are auto-assigned by type if not specified
+
 ## Examples
 
 ### Example 1: Basic Usage
@@ -180,6 +208,17 @@ python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -
 
 ![Example 4 Output](examples/example4_custom_colors/output.png)
 
+### Example 5: Annotations
+
+Demonstrates annotation markers (TF binding sites, enhancers, centromeres) with different shapes and automatic jitter for overlapping markers.
+
+```bash
+cd examples/example5_annotations
+python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -a annotations.tsv -o output.png
+```
+
+![Example 5 Output](examples/example5_annotations/output.png)
+
 ## Output Formats
 
 Output format is determined by file extension:
@@ -188,6 +227,13 @@ Output format is determined by file extension:
 - `.pdf` - Vector graphics (publication-ready)
 
 ## Changelog
+
+### v0.1.5
+- Add annotation markers feature (`-a` option)
+- Support 5 marker shapes: circle, triangle, diamond, rect, line
+- Automatic jitter for overlapping markers
+- Dynamic spacing for chromosomes with annotations
+- Add example5_annotations
 
 ### v0.1.4
 - Fix bottom legend position (now displays below x-axis like CLI)

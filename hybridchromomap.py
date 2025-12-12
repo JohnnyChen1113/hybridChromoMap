@@ -54,6 +54,29 @@ class Segment:
 
 
 @dataclass
+class Annotation:
+    """Represents a genomic annotation (e.g., TF binding site) with display properties."""
+    chrom: str
+    copy: int
+    start: int
+    end: int
+    type: str
+    color: Optional[str] = None  # Hex color, auto-assigned if None
+    shape: str = 'circle'  # circle, triangle, diamond, rect, line
+    label: str = ''  # Text label to display
+
+    @property
+    def position(self) -> int:
+        """Center position for drawing."""
+        return (self.start + self.end) // 2
+
+    @property
+    def is_interval(self) -> bool:
+        """Check if this is an interval (vs point) annotation."""
+        return self.end > self.start
+
+
+@dataclass
 class ChromosomeCopy:
     """Represents one copy of a chromosome."""
     chrom: str
@@ -374,6 +397,99 @@ def generate_origin_colors(karyotype: Karyotype) -> Dict[str, Origin]:
     return origins
 
 
+def parse_annotations(filepath: Path, karyotype: Karyotype) -> List[Annotation]:
+    """
+    Parse annotations TSV file.
+    Format: #chrom  copy  start  end  type  [color]  [shape]  [label]
+
+    Optional columns:
+    - color: Hex color (auto-assigned by type if omitted)
+    - shape: circle, triangle, diamond, rect, line (default: circle)
+    - label: Text label to display (default: empty)
+    """
+    annotations = []
+    type_colors = {}  # Auto-assign colors by type
+    color_idx = 0
+
+    # NPG color palette for auto-coloring
+    color_palette = [
+        '#E64B35', '#4DBBD5', '#00A087', '#3C5488',
+        '#F39B7F', '#8491B4', '#91D1C2', '#DC0000',
+        '#7E6148', '#B09C85'
+    ]
+
+    with open(filepath, 'r') as f:
+        for line_num, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            parts = line.split('\t')
+            if len(parts) < 5:
+                raise ValueError(
+                    f"Annotations file line {line_num}: expected at least 5 columns "
+                    f"(chrom, copy, start, end, type), got {len(parts)}"
+                )
+
+            chrom = parts[0]
+            try:
+                copy = int(parts[1])
+                start = int(parts[2])
+                end = int(parts[3])
+            except ValueError as e:
+                raise ValueError(
+                    f"Annotations file line {line_num}: invalid integer value: {e}"
+                )
+            ann_type = parts[4]
+
+            # Optional columns
+            color = parts[5] if len(parts) > 5 and parts[5].strip() else None
+            shape = parts[6] if len(parts) > 6 and parts[6].strip() else 'circle'
+            label = parts[7] if len(parts) > 7 and parts[7].strip() and parts[7].strip() != '-' else ''
+
+            # Validate shape
+            valid_shapes = ['circle', 'triangle', 'diamond', 'rect', 'line']
+            if shape not in valid_shapes:
+                raise ValueError(
+                    f"Annotations file line {line_num}: invalid shape '{shape}'. "
+                    f"Valid shapes: {', '.join(valid_shapes)}"
+                )
+
+            # Parse color or auto-assign by type
+            if color:
+                try:
+                    color = parse_color(color)
+                except ValueError as e:
+                    raise ValueError(f"Annotations file line {line_num}: {e}")
+            else:
+                # Auto-assign color by type
+                if ann_type not in type_colors:
+                    type_colors[ann_type] = color_palette[color_idx % len(color_palette)]
+                    color_idx += 1
+                color = type_colors[ann_type]
+
+            # Validate chromosome and copy exist
+            chrom_copy = karyotype.get_copy(chrom, copy)
+            if chrom_copy is None:
+                raise ValueError(
+                    f"Annotations file line {line_num}: chromosome '{chrom}' copy {copy} "
+                    f"not found in karyotype"
+                )
+
+            annotations.append(Annotation(
+                chrom=chrom,
+                copy=copy,
+                start=start,
+                end=end,
+                type=ann_type,
+                color=color,
+                shape=shape,
+                label=label
+            ))
+
+    return annotations
+
+
 # =============================================================================
 # Renderer
 # =============================================================================
@@ -385,6 +501,7 @@ class ChromoMapRenderer:
         self,
         karyotype: Karyotype,
         origins: Dict[str, Origin],
+        annotations: Optional[List[Annotation]] = None,
         fig_width: float = 12.0,
         chrom_height: float = 0.4,
         font_size: float = 10.0,
@@ -394,9 +511,12 @@ class ChromoMapRenderer:
         right_margin: float = 2.5,
         top_margin: float = 0.5,
         bottom_margin: float = 1.0,
+        marker_size: float = 0.06,
+        label_angle: float = 45.0,
     ):
         self.karyotype = karyotype
         self.origins = origins
+        self.annotations = annotations or []
         self.fig_width = fig_width
         self.chrom_height = chrom_height
         self.font_size = font_size
@@ -406,11 +526,37 @@ class ChromoMapRenderer:
         self.right_margin = right_margin
         self.top_margin = top_margin
         self.bottom_margin = bottom_margin
+        self.marker_size = marker_size
+        self.label_angle = label_angle
 
         # Calculate scale: bp to inches
         self.max_bp = karyotype.max_length
         self.plot_width = fig_width - left_margin - right_margin
         self.bp_to_inch = self.plot_width / self.max_bp if self.max_bp > 0 else 1
+
+    def _get_annotation_height(self, chrom_name: str, copy_num: int) -> float:
+        """Calculate extra height needed for annotations on a chromosome copy."""
+        if not self.annotations:
+            return 0.0
+
+        # Filter annotations for this chromosome copy
+        copy_annots = [
+            a for a in self.annotations
+            if a.chrom == chrom_name and a.copy == copy_num
+        ]
+
+        if not copy_annots:
+            return 0.0
+
+        # Calculate jitter levels to determine max height
+        jitter_levels = self._calculate_jitter(copy_annots)
+        max_level = max(jitter_levels.values()) if jitter_levels else 0
+
+        # Extra height = base marker space + jitter layers + label space
+        jitter_offset = self.marker_size * 1.2
+        extra_height = self.marker_size * 2 + max_level * jitter_offset + self.marker_size
+
+        return extra_height
 
     def _calculate_fig_height(self, sort_by: str) -> float:
         """Calculate figure height based on number of chromosome copies."""
@@ -425,6 +571,10 @@ class ChromoMapRenderer:
             total_height += num_copies * self.chrom_height
             # Add spacing between copies of same chromosome
             total_height += (num_copies - 1) * self.same_chrom_spacing
+
+            # Add extra height for annotations on each copy
+            for copy_num in chrom.copies.keys():
+                total_height += self._get_annotation_height(chrom_name, copy_num)
 
             # Add spacing to next chromosome (except for last)
             if i < len(chrom_names) - 1:
@@ -631,6 +781,187 @@ class ChromoMapRenderer:
                 title='Origin'
             )
 
+    def _calculate_jitter(
+        self,
+        annotations: List[Annotation]
+    ) -> Dict[int, int]:
+        """
+        Calculate jitter levels for overlapping annotations.
+        Returns a dict mapping annotation id to jitter level (0-3).
+        """
+        if not annotations:
+            return {}
+
+        # Sort by position
+        sorted_annots = sorted(annotations, key=lambda a: a.position)
+        jitter_levels = {}
+        min_distance = self.marker_size * 2  # Minimum distance before jittering
+
+        for i, annot in enumerate(sorted_annots):
+            # Find available jitter level
+            level = 0
+            max_level = 4
+
+            while level < max_level:
+                conflict = False
+                # Check nearby annotations for conflicts at this level
+                for j in range(max(0, i - 5), i):
+                    other = sorted_annots[j]
+                    other_level = jitter_levels.get(id(other), 0)
+                    if other_level == level:
+                        # Check if positions overlap
+                        dist = abs(annot.position - other.position) * self.bp_to_inch
+                        if dist < min_distance:
+                            conflict = True
+                            break
+                if not conflict:
+                    break
+                level += 1
+
+            # Wrap around if we exceed max level
+            jitter_levels[id(annot)] = level % max_level
+
+        return jitter_levels
+
+    def _draw_marker(
+        self,
+        ax: plt.Axes,
+        x: float,
+        y: float,
+        shape: str,
+        color: str,
+        size: float,
+        width: float = None
+    ):
+        """Draw a marker shape at the given position."""
+        from matplotlib.patches import Circle, Polygon, Rectangle
+
+        if shape == 'circle':
+            marker = Circle(
+                (x, y),
+                size / 2,
+                facecolor=color,
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=3
+            )
+            ax.add_patch(marker)
+
+        elif shape == 'triangle':
+            # Triangle pointing up
+            half = size / 2
+            triangle = Polygon(
+                [(x, y + half), (x - half, y - half), (x + half, y - half)],
+                facecolor=color,
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=3
+            )
+            ax.add_patch(triangle)
+
+        elif shape == 'diamond':
+            half = size / 2
+            diamond = Polygon(
+                [(x, y + half), (x + half, y), (x, y - half), (x - half, y)],
+                facecolor=color,
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=3
+            )
+            ax.add_patch(diamond)
+
+        elif shape == 'rect':
+            # Rectangle (for intervals)
+            rect_width = width if width else size
+            rect = Rectangle(
+                (x - rect_width / 2, y - size / 4),
+                rect_width,
+                size / 2,
+                facecolor=color,
+                edgecolor='black',
+                linewidth=0.5,
+                zorder=3
+            )
+            ax.add_patch(rect)
+
+        elif shape == 'line':
+            # Vertical line/tick
+            ax.plot(
+                [x, x],
+                [y - size / 2, y + size / 2],
+                color=color,
+                linewidth=2,
+                solid_capstyle='round',
+                zorder=3
+            )
+
+    def _draw_annotation_label(
+        self,
+        ax: plt.Axes,
+        x: float,
+        y: float,
+        label: str,
+        angle: float
+    ):
+        """Draw a tilted label next to a marker."""
+        if not label:
+            return
+
+        ax.text(
+            x + self.marker_size * 0.6,
+            y + self.marker_size * 0.3,
+            label,
+            fontsize=self.font_size - 2,
+            rotation=angle,
+            ha='left',
+            va='bottom',
+            zorder=4
+        )
+
+    def _draw_annotations(
+        self,
+        ax: plt.Axes,
+        chrom_name: str,
+        copy_num: int,
+        chrom_y: float
+    ):
+        """Draw all annotations for a specific chromosome copy."""
+        # Filter annotations for this chromosome copy
+        copy_annots = [
+            a for a in self.annotations
+            if a.chrom == chrom_name and a.copy == copy_num
+        ]
+
+        if not copy_annots:
+            return
+
+        # Calculate jitter levels
+        jitter_levels = self._calculate_jitter(copy_annots)
+        jitter_offset = self.marker_size * 1.2  # Vertical offset between jitter levels
+
+        # Base y position (above chromosome)
+        base_y = chrom_y + self.chrom_height + self.marker_size
+
+        for annot in copy_annots:
+            # Calculate x position
+            x = self.left_margin + annot.position * self.bp_to_inch
+
+            # Calculate y position with jitter
+            level = jitter_levels.get(id(annot), 0)
+            y = base_y + level * jitter_offset
+
+            # Calculate width for interval annotations
+            width = None
+            if annot.is_interval:
+                width = (annot.end - annot.start) * self.bp_to_inch
+                width = max(width, self.marker_size)  # Minimum width
+
+            # Draw marker
+            self._draw_marker(ax, x, y, annot.shape, annot.color, self.marker_size, width)
+
+            # Draw label
+            self._draw_annotation_label(ax, x, y, annot.label, self.label_angle)
+
     def render(
         self,
         output_path: Path,
@@ -775,8 +1106,17 @@ class ChromoMapRenderer:
                     fontfamily='monospace'
                 )
 
+                # Draw annotations for this chromosome copy
+                if self.annotations:
+                    self._draw_annotations(ax, chrom_name, copy_num, y)
+
                 # Update y position
                 current_y = y
+
+                # Add extra space for annotations on this copy
+                annotation_height = self._get_annotation_height(chrom_name, copy_num)
+                current_y -= annotation_height
+
                 if j < len(sorted_copies) - 1:
                     current_y -= self.same_chrom_spacing
 
@@ -878,6 +1218,25 @@ class ChromoMapRenderer:
     default=300,
     help='PNG output resolution'
 )
+@click.option(
+    '-a', '--annotations',
+    required=False,
+    default=None,
+    type=click.Path(exists=True, path_type=Path),
+    help='Annotations file (TSV) for markers like TF binding sites'
+)
+@click.option(
+    '--marker-size',
+    type=float,
+    default=0.06,
+    help='Annotation marker size in inches'
+)
+@click.option(
+    '--label-angle',
+    type=float,
+    default=45.0,
+    help='Annotation label rotation angle in degrees'
+)
 def main(
     karyotype: Path,
     segments: Path,
@@ -889,7 +1248,10 @@ def main(
     width: float,
     chrom_height: float,
     font_size: float,
-    dpi: int
+    dpi: int,
+    annotations: Optional[Path],
+    marker_size: float,
+    label_angle: float
 ):
     """
     HybridChromoMap - Chromosome ancestry painting visualization
@@ -925,14 +1287,24 @@ def main(
             # Generate colors based on unique origins in segments
             origin_dict = generate_origin_colors(karyo)
 
+        # Handle annotations
+        annot_list = []
+        if annotations is not None:
+            click.echo(f"Loading annotations from {annotations}...")
+            annot_list = parse_annotations(annotations, karyo)
+            click.echo(f"  Loaded {len(annot_list)} annotations")
+
         # Render
         click.echo(f"Rendering to {out}...")
         renderer = ChromoMapRenderer(
             karyotype=karyo,
             origins=origin_dict,
+            annotations=annot_list,
             fig_width=width,
             chrom_height=chrom_height,
-            font_size=font_size
+            font_size=font_size,
+            marker_size=marker_size,
+            label_angle=label_angle
         )
         renderer.render(
             output_path=out,
