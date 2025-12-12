@@ -213,12 +213,20 @@ python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -
 
 Demonstrates annotation markers (TF binding sites, enhancers, centromeres) with different shapes and automatic jitter for overlapping markers.
 
+**With labels:**
 ```bash
 cd examples/example5_annotations
-python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -a annotations.tsv -o output.png
+python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -a annotations.tsv -o output_with_labels.png
 ```
 
-![Example 5 Output](examples/example5_annotations/output.png)
+![Example 5 with labels](examples/example5_annotations/output_with_labels.png)
+
+**Without labels (markers only):**
+```bash
+python ../../hybridchromomap.py -k karyotype.tsv -s segments.tsv -c colors.tsv -a annotations.tsv -o output.png --no-labels
+```
+
+![Example 5 without labels](examples/example5_annotations/output.png)
 
 ## Output Formats
 
