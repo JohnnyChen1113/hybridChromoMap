@@ -387,6 +387,7 @@ class ChromoMapRenderer:
         origins: Dict[str, Origin],
         fig_width: float = 12.0,
         chrom_height: float = 0.4,
+        font_size: float = 10.0,
         same_chrom_spacing: float = 0.15,
         diff_chrom_spacing: float = 0.5,
         left_margin: float = 1.5,
@@ -398,6 +399,7 @@ class ChromoMapRenderer:
         self.origins = origins
         self.fig_width = fig_width
         self.chrom_height = chrom_height
+        self.font_size = font_size
         self.same_chrom_spacing = same_chrom_spacing
         self.diff_chrom_spacing = diff_chrom_spacing
         self.left_margin = left_margin
@@ -769,7 +771,7 @@ class ChromoMapRenderer:
                     label,
                     ha='right',
                     va='center',
-                    fontsize=10,
+                    fontsize=self.font_size,
                     fontfamily='monospace'
                 )
 
@@ -859,6 +861,18 @@ class ChromoMapRenderer:
     help='Figure width in inches'
 )
 @click.option(
+    '--chrom-height',
+    type=float,
+    default=0.4,
+    help='Chromosome bar height in inches'
+)
+@click.option(
+    '--font-size',
+    type=float,
+    default=10.0,
+    help='Label font size'
+)
+@click.option(
     '--dpi',
     type=int,
     default=300,
@@ -873,6 +887,8 @@ def main(
     legend: str,
     no_scale: bool,
     width: float,
+    chrom_height: float,
+    font_size: float,
     dpi: int
 ):
     """
@@ -914,7 +930,9 @@ def main(
         renderer = ChromoMapRenderer(
             karyotype=karyo,
             origins=origin_dict,
-            fig_width=width
+            fig_width=width,
+            chrom_height=chrom_height,
+            font_size=font_size
         )
         renderer.render(
             output_path=out,

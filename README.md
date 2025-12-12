@@ -2,7 +2,7 @@
 
 A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
-**Version: 0.1.0**
+**Version: 0.1.2**
 
 ## Features
 
@@ -57,6 +57,8 @@ python hybridchromomap.py \
 | `--legend` | | Legend position (right/bottom/none) | right |
 | `--no-scale` | | Hide scale bar | False |
 | `--width` | | Figure width in inches | 12 |
+| `--chrom-height` | | Chromosome bar height in inches | 0.4 |
+| `--font-size` | | Label font size | 10 |
 | `--dpi` | | PNG output resolution | 300 |
 
 ## Input File Formats
