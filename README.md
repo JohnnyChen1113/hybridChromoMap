@@ -6,6 +6,17 @@ A tool for drawing chromosome ancestry painting diagrams for hybrid species.
 
 **[Try the Web Version](https://johnnychen1113.github.io/hybridChromoMap/)** - No installation required!
 
+## Citation
+
+If you use HybridChromoMap in your research, please cite:
+
+```
+HybridChromoMap: A tool for chromosome ancestry painting visualization
+https://github.com/JohnnyChen1113/hybridChromoMap
+```
+
+<!-- TODO: Add Zenodo DOI badge after enabling Zenodo integration -->
+
 ## Features
 
 - Support for arbitrary species (user-defined chromosomes)
