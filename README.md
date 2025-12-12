@@ -175,6 +175,24 @@ Output format is determined by file extension:
 - `.png` - Raster graphics (high resolution)
 - `.pdf` - Vector graphics (publication-ready)
 
+## Changelog
+
+### v0.1.2
+- Add `--chrom-height` option to control chromosome bar height
+- Add `--font-size` option to control label font size
+
+### v0.1.1
+- Add flexible color format support (hex, RGB tuple, color names)
+- Add example4_custom_colors demo
+
+### v0.1.0
+- Initial release
+- Support for arbitrary species with user-defined chromosomes
+- Multiple origin coloring (supports introgression)
+- Variable ploidy support (haploid, diploid, aneuploid)
+- Publication-quality output (SVG/PNG/PDF)
+- Auto-generated colors when no color file is provided
+
 ## License
 
 MIT License
