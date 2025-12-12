@@ -352,8 +352,10 @@ species_A&#9;#E64B35&#9;Species A
 
             <div class="output-panel">
                 <div class="export-btns">
+                    <input type="text" id="filename" value="chromomap" placeholder="Filename" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 150px; font-size: 13px;">
                     <button class="export-btn" id="exportSvg" onclick="exportSVG()" disabled>Export SVG</button>
                     <button class="export-btn" id="exportPng" onclick="exportPNG()" disabled>Export PNG</button>
+                    <button class="export-btn" id="exportPdf" onclick="exportPDF()" disabled style="background: #8e44ad;">Export PDF</button>
                 </div>
                 <div class="output-area">
                     <div id="errorMsg"></div>
@@ -689,6 +691,7 @@ Unknown\t#999999\tUnknown`
 
                 document.getElementById('exportSvg').disabled = false;
                 document.getElementById('exportPng').disabled = false;
+                document.getElementById('exportPdf').disabled = false;
             } catch (e) {
                 showError('Error parsing data: ' + e.message);
                 console.error(e);
@@ -719,9 +722,16 @@ Unknown\t#999999\tUnknown`
             const groupSpacing = chromHeight * 1.2;
             const labelWidth = 80;
             const marginTop = 30;
-            const marginBottom = 60;
             const marginRight = options.legend === 'right' ? 150 : 30;
             const marginLeft = 10;
+
+            // Calculate legend height for bottom position
+            const origins = Object.keys(colorMap);
+            const legendRowHeight = options.fontSize + 8;
+            const itemsPerRow = 4;
+            const legendRows = Math.ceil(origins.length / itemsPerRow);
+            const bottomLegendHeight = options.legend === 'bottom' ? (legendRows * legendRowHeight + 40) : 0;
+            const marginBottom = 60 + bottomLegendHeight;
 
             // Find max length for scaling
             let maxLength = 0;
@@ -943,66 +953,131 @@ Unknown\t#999999\tUnknown`
 
             const origins = Object.keys(colorMap);
 
-            let legendX, legendY;
             if (options.legend === 'right') {
-                legendX = svgWidth - marginRight + 20;
-                legendY = 40;
+                // Vertical legend on the right
+                const legendX = svgWidth - marginRight + 20;
+                const legendY = 40;
+
+                // Legend title
+                const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                title.setAttribute('x', legendX);
+                title.setAttribute('y', legendY);
+                title.setAttribute('font-size', fontSize);
+                title.setAttribute('font-weight', 'bold');
+                title.setAttribute('font-family', 'sans-serif');
+                title.textContent = 'Origin';
+                svg.appendChild(title);
+
+                // Legend items
+                let itemY = legendY + lineHeight;
+                for (const origin of origins) {
+                    const { color, label } = colorMap[origin];
+
+                    // Color box
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', legendX);
+                    rect.setAttribute('y', itemY - boxSize + 3);
+                    rect.setAttribute('width', boxSize);
+                    rect.setAttribute('height', boxSize);
+                    rect.setAttribute('fill', color);
+                    rect.setAttribute('rx', 2);
+                    svg.appendChild(rect);
+
+                    // Label
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', legendX + boxSize + 6);
+                    text.setAttribute('y', itemY);
+                    text.setAttribute('font-size', fontSize);
+                    text.setAttribute('font-family', 'sans-serif');
+                    text.textContent = label;
+                    svg.appendChild(text);
+
+                    itemY += lineHeight;
+                }
+
+                // Draw border
+                const borderPadding = 8;
+                const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                border.setAttribute('x', legendX - borderPadding);
+                border.setAttribute('y', legendY - fontSize - borderPadding + 5);
+                border.setAttribute('width', 120);
+                border.setAttribute('height', (origins.length + 1) * lineHeight + borderPadding);
+                border.setAttribute('fill', 'none');
+                border.setAttribute('stroke', '#ddd');
+                border.setAttribute('rx', 4);
+                svg.appendChild(border);
+                svg.insertBefore(border, svg.firstChild);
             } else {
-                legendX = labelWidth + marginLeft + 20;
-                legendY = svgHeight - 20;
+                // Horizontal legend at the bottom
+                const legendY = svgHeight - 50;
+                const itemWidth = 150;
+                const itemsPerRow = Math.floor((svgWidth - labelWidth - marginLeft - 40) / itemWidth);
+                const startX = labelWidth + marginLeft + 20;
+
+                // Legend title (centered)
+                const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                title.setAttribute('x', svgWidth / 2);
+                title.setAttribute('y', legendY - 15);
+                title.setAttribute('text-anchor', 'middle');
+                title.setAttribute('font-size', fontSize);
+                title.setAttribute('font-weight', 'bold');
+                title.setAttribute('font-family', 'sans-serif');
+                title.textContent = 'Origin';
+                svg.appendChild(title);
+
+                // Legend items in rows
+                let row = 0;
+                let col = 0;
+                for (const origin of origins) {
+                    const { color, label } = colorMap[origin];
+                    const itemX = startX + col * itemWidth;
+                    const itemY = legendY + row * lineHeight;
+
+                    // Color box
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', itemX);
+                    rect.setAttribute('y', itemY);
+                    rect.setAttribute('width', boxSize);
+                    rect.setAttribute('height', boxSize);
+                    rect.setAttribute('fill', color);
+                    rect.setAttribute('rx', 2);
+                    svg.appendChild(rect);
+
+                    // Label
+                    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    text.setAttribute('x', itemX + boxSize + 6);
+                    text.setAttribute('y', itemY + boxSize - 2);
+                    text.setAttribute('font-size', fontSize);
+                    text.setAttribute('font-family', 'sans-serif');
+                    text.textContent = label;
+                    svg.appendChild(text);
+
+                    col++;
+                    if (col >= itemsPerRow) {
+                        col = 0;
+                        row++;
+                    }
+                }
+
+                // Draw border around legend area
+                const totalRows = Math.ceil(origins.length / itemsPerRow);
+                const borderPadding = 10;
+                const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                border.setAttribute('x', startX - borderPadding);
+                border.setAttribute('y', legendY - 30);
+                border.setAttribute('width', Math.min(itemsPerRow, origins.length) * itemWidth + borderPadding);
+                border.setAttribute('height', totalRows * lineHeight + 35);
+                border.setAttribute('fill', 'none');
+                border.setAttribute('stroke', '#ddd');
+                border.setAttribute('rx', 4);
+                svg.appendChild(border);
+                svg.insertBefore(border, svg.firstChild);
             }
+        }
 
-            // Legend title
-            const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            title.setAttribute('x', legendX);
-            title.setAttribute('y', legendY);
-            title.setAttribute('font-size', fontSize);
-            title.setAttribute('font-weight', 'bold');
-            title.setAttribute('font-family', 'sans-serif');
-            title.textContent = 'Origin';
-            svg.appendChild(title);
-
-            // Legend items
-            let itemY = legendY + lineHeight;
-            for (const origin of origins) {
-                const { color, label } = colorMap[origin];
-
-                // Color box
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('x', legendX);
-                rect.setAttribute('y', itemY - boxSize + 3);
-                rect.setAttribute('width', boxSize);
-                rect.setAttribute('height', boxSize);
-                rect.setAttribute('fill', color);
-                rect.setAttribute('rx', 2);
-                svg.appendChild(rect);
-
-                // Label
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('x', legendX + boxSize + 6);
-                text.setAttribute('y', itemY);
-                text.setAttribute('font-size', fontSize);
-                text.setAttribute('font-family', 'sans-serif');
-                text.textContent = label;
-                svg.appendChild(text);
-
-                itemY += lineHeight;
-            }
-
-            // Draw border
-            const borderPadding = 8;
-            const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-            border.setAttribute('x', legendX - borderPadding);
-            border.setAttribute('y', legendY - fontSize - borderPadding + 5);
-            border.setAttribute('width', 120);
-            border.setAttribute('height', (origins.length + 1) * lineHeight + borderPadding);
-            border.setAttribute('fill', 'none');
-            border.setAttribute('stroke', '#ddd');
-            border.setAttribute('rx', 4);
-            svg.appendChild(border);
-
-            // Move border to back
-            svg.insertBefore(border, svg.firstChild);
+        function getFilename() {
+            const input = document.getElementById('filename').value.trim();
+            return input || 'chromomap';
         }
 
         function exportSVG() {
@@ -1013,7 +1088,7 @@ Unknown\t#999999\tUnknown`
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'chromomap.svg';
+            a.download = getFilename() + '.svg';
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -1040,8 +1115,62 @@ Unknown\t#999999\tUnknown`
                 const pngUrl = canvas.toDataURL('image/png');
                 const a = document.createElement('a');
                 a.href = pngUrl;
-                a.download = 'chromomap.png';
+                a.download = getFilename() + '.png';
                 a.click();
+
+                URL.revokeObjectURL(url);
+            };
+            img.src = url;
+        }
+
+        function exportPDF() {
+            const svg = document.getElementById('chromoMap');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const scale = 2;
+                canvas.width = svg.width.baseVal.value * scale;
+                canvas.height = svg.height.baseVal.value * scale;
+
+                const ctx = canvas.getContext('2d');
+                ctx.scale(scale, scale);
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+
+                // Create PDF using canvas
+                const pngUrl = canvas.toDataURL('image/png');
+
+                // Open print dialog with the image for PDF save
+                const printWindow = window.open('', '_blank');
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>${getFilename()}</title>
+                        <style>
+                            @page { size: landscape; margin: 0; }
+                            body { margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                            img { max-width: 100%; max-height: 100vh; }
+                        </style>
+                    </head>
+                    <body>
+                        <img src="${pngUrl}" />
+                        <scr` + `ipt>
+                            window.onload = function() {
+                                setTimeout(function() {
+                                    window.print();
+                                }, 100);
+                            };
+                        </scr` + `ipt>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
 
                 URL.revokeObjectURL(url);
             };
