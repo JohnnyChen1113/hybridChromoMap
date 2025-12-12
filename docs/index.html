@@ -342,6 +342,12 @@ species_A&#9;#E64B35&#9;Species A
                             <label>Font Size</label>
                             <input type="number" id="fontSize" value="12" min="8" max="24">
                         </div>
+                        <div class="option-group" style="grid-column: span 2;">
+                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                <input type="checkbox" id="italicLabels" checked style="margin: 0;">
+                                <span>Italic species names</span>
+                            </label>
+                        </div>
                     </div>
                     <div class="btn-row">
                         <button class="btn btn-primary" onclick="render()">Draw</button>
@@ -366,6 +372,7 @@ species_A&#9;#E64B35&#9;Species A
 
         <footer>
             <a href="https://github.com/JohnnyChen1113/hybridChromoMap" target="_blank">GitHub</a> ·
+            <a href="https://zlinlab.org" target="_blank">ZLin Lab</a> ·
             Python CLI version also available ·
             MIT License
         </footer>
@@ -681,12 +688,14 @@ Unknown\t#999999\tUnknown`
                 const legendOption = document.getElementById('legendOption').value;
                 const chromHeight = parseInt(document.getElementById('chromHeight').value) || 24;
                 const fontSize = parseInt(document.getElementById('fontSize').value) || 12;
+                const italicLabels = document.getElementById('italicLabels').checked;
 
                 drawChromoMap(chromosomes, colorMap, {
                     sort: sortOption,
                     legend: legendOption,
                     chromHeight: chromHeight,
-                    fontSize: fontSize
+                    fontSize: fontSize,
+                    italic: italicLabels
                 });
 
                 document.getElementById('exportSvg').disabled = false;
@@ -727,10 +736,10 @@ Unknown\t#999999\tUnknown`
 
             // Calculate legend height for bottom position
             const origins = Object.keys(colorMap);
-            const legendRowHeight = options.fontSize + 8;
+            const legendRowHeight = options.fontSize + 12;
             const itemsPerRow = 4;
             const legendRows = Math.ceil(origins.length / itemsPerRow);
-            const bottomLegendHeight = options.legend === 'bottom' ? (legendRows * legendRowHeight + 40) : 0;
+            const bottomLegendHeight = options.legend === 'bottom' ? (legendRows * legendRowHeight + 60) : 0;
             const marginBottom = 60 + bottomLegendHeight;
 
             // Find max length for scaling
@@ -812,13 +821,13 @@ Unknown\t#999999\tUnknown`
                 y += groupSpacing - chromSpacing; // Extra spacing between chromosome groups
             }
 
-            // Draw scale bar
-            const scaleY = svgHeight - 30;
+            // Draw scale bar (positioned at fixed distance below chromosomes)
+            const scaleY = marginTop + totalRows * (chromHeight + chromSpacing) + (groups - 1) * groupSpacing + 20;
             drawScaleBar(svg, labelWidth + marginLeft, scaleY, drawWidth, maxLength, options.fontSize);
 
             // Draw legend
             if (options.legend !== 'none') {
-                drawLegend(svg, colorMap, options, svgWidth, svgHeight, marginRight, labelWidth, marginLeft);
+                drawLegend(svg, colorMap, options, svgWidth, svgHeight, marginRight, labelWidth, marginLeft, scaleY);
             }
         }
 
@@ -946,10 +955,11 @@ Unknown\t#999999\tUnknown`
             svg.appendChild(unitText);
         }
 
-        function drawLegend(svg, colorMap, options, svgWidth, svgHeight, marginRight, labelWidth, marginLeft) {
+        function drawLegend(svg, colorMap, options, svgWidth, svgHeight, marginRight, labelWidth, marginLeft, scaleBarY) {
             const fontSize = options.fontSize;
             const boxSize = fontSize + 2;
-            const lineHeight = boxSize + 6;
+            const lineHeight = boxSize + 8;
+            const italic = options.italic;
 
             const origins = Object.keys(colorMap);
 
@@ -989,6 +999,7 @@ Unknown\t#999999\tUnknown`
                     text.setAttribute('y', itemY);
                     text.setAttribute('font-size', fontSize);
                     text.setAttribute('font-family', 'sans-serif');
+                    if (italic) text.setAttribute('font-style', 'italic');
                     text.textContent = label;
                     svg.appendChild(text);
 
@@ -1008,16 +1019,20 @@ Unknown\t#999999\tUnknown`
                 svg.appendChild(border);
                 svg.insertBefore(border, svg.firstChild);
             } else {
-                // Horizontal legend at the bottom
-                const legendY = svgHeight - 50;
+                // Horizontal legend at the bottom (below scale bar)
+                const legendStartY = scaleBarY + 35; // Start below the scale bar
                 const itemWidth = 150;
                 const itemsPerRow = Math.floor((svgWidth - labelWidth - marginLeft - 40) / itemWidth);
-                const startX = labelWidth + marginLeft + 20;
+
+                // Center the legend
+                const totalItemsInFirstRow = Math.min(itemsPerRow, origins.length);
+                const legendWidth = totalItemsInFirstRow * itemWidth;
+                const startX = (svgWidth - legendWidth) / 2 + labelWidth / 2;
 
                 // Legend title (centered)
                 const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                 title.setAttribute('x', svgWidth / 2);
-                title.setAttribute('y', legendY - 15);
+                title.setAttribute('y', legendStartY);
                 title.setAttribute('text-anchor', 'middle');
                 title.setAttribute('font-size', fontSize);
                 title.setAttribute('font-weight', 'bold');
@@ -1026,12 +1041,13 @@ Unknown\t#999999\tUnknown`
                 svg.appendChild(title);
 
                 // Legend items in rows
+                const itemsStartY = legendStartY + lineHeight;
                 let row = 0;
                 let col = 0;
                 for (const origin of origins) {
                     const { color, label } = colorMap[origin];
                     const itemX = startX + col * itemWidth;
-                    const itemY = legendY + row * lineHeight;
+                    const itemY = itemsStartY + row * lineHeight;
 
                     // Color box
                     const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -1049,6 +1065,7 @@ Unknown\t#999999\tUnknown`
                     text.setAttribute('y', itemY + boxSize - 2);
                     text.setAttribute('font-size', fontSize);
                     text.setAttribute('font-family', 'sans-serif');
+                    if (italic) text.setAttribute('font-style', 'italic');
                     text.textContent = label;
                     svg.appendChild(text);
 
@@ -1064,9 +1081,9 @@ Unknown\t#999999\tUnknown`
                 const borderPadding = 10;
                 const border = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 border.setAttribute('x', startX - borderPadding);
-                border.setAttribute('y', legendY - 30);
+                border.setAttribute('y', legendStartY - fontSize - 5);
                 border.setAttribute('width', Math.min(itemsPerRow, origins.length) * itemWidth + borderPadding);
-                border.setAttribute('height', totalRows * lineHeight + 35);
+                border.setAttribute('height', (totalRows + 1) * lineHeight + 10);
                 border.setAttribute('fill', 'none');
                 border.setAttribute('stroke', '#ddd');
                 border.setAttribute('rx', 4);
